@@ -1,6 +1,6 @@
 # Manifold Matching via Deep Metric Learning for Generative Modeling
 A Pytorch implementation of "Manifold Matching via Deep Metric Learning for Generative Modeling" (ICCV 2021).
-<p align="center">
+<p>
 Original Code: https://github.com/dzld00/pytorch-manifold-matching
 </p>
 <p align="center">
