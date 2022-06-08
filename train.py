@@ -29,14 +29,14 @@ from loss import TripletLoss, pairwise_distances
 from model import Generator64, ML64
 
 parser = argparse.ArgumentParser(description='Train Image Generation Models')
-parser.add_argument('--data_path', default='/mnt/prj/jaewon/dataset/celeba', type=str, help='dataset path')
+parser.add_argument('--data_path', default='/mnt/prj/Data/celebA/celeba', type=str, help='dataset path')
 parser.add_argument('--data_name', default='celeba', type=str, help='dataset name')
 parser.add_argument('--name', default='results', type=str, help='path to store results')
 parser.add_argument('--size', default=64, type=int, help='training images size')
 parser.add_argument('--out_dim', default=10, type=int, help='ML network output dim')
 parser.add_argument('--num_epochs', default=50, type=int, help='train epoch number')
 parser.add_argument('--num_samples', default=64, type=int, help='number of displayed samples')
-parser.add_argument('--batch_size', default=128, type=int, help='train batch size')
+parser.add_argument('--batch_size', default=256, type=int, help='train batch size')
 parser.add_argument('--lr', default=1e-4, type=float, help='train learning rate')
 parser.add_argument('--beta1', default=0, type=float, help='Adam optimizer beta1')
 parser.add_argument('--beta2', default=0.9, type=float, help='Adam optimizer beta2')
@@ -44,7 +44,7 @@ parser.add_argument('--load_model', default = 'no', type=str, choices=['yes', 'n
 parser.add_argument('--load_model_path', default = '', type=str, help='load model dir path')
 parser.add_argument('--g_model_name', default='Generator64', type=str, help='generator model name')
 parser.add_argument('--ml_model_name', default='ML64', type=str, help='metric learning model name')
-parser.add_argument('--margin', default=1.5, type=float, help='triplet loss margin')
+parser.add_argument('--margin', default=1, type=float, help='triplet loss margin')
 parser.add_argument('--alpha', default=1e-2, type=float, help='triplet loss direction guidance weight parameter')
 parser.add_argument('--n_threads', type=int, default=16)
 
@@ -73,7 +73,9 @@ if __name__ == '__main__':
     log_path= str(output_path + '/logs')
     if not os.path.exists(log_path):
         os.makedirs(log_path)
-    sample_path = output_path           
+    sample_path = output_path + '/images' 
+    if not os.path.exists(sample_path):
+        os.makedirs(sample_path)          
     
     # jupyter-tensorboard writer
     writer = SummaryWriter(log_path)
@@ -89,13 +91,25 @@ if __name__ == '__main__':
     else:
         DEVICE = torch.device('cpu')
     print('Using PyTorch version:', torch.__version__, ' Device:', DEVICE)
-     
+    
+    # Multi-GPU
+    if (DEVICE.type == 'cuda') and (torch.cuda.device_count() > 1):
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        multi_gpu = True
+    else : multi_gpu = False
+    
     # Generator
-    netG = Generator64().to(DEVICE)  
+    netG = Generator64()
+    if multi_gpu:
+        netG = nn.DataParallel(netG)
+    netG.to(DEVICE)  
     optimizerG = optim.Adam(netG.parameters(), lr = learning_rate, betas=(beta1,beta2),eps= 1e-6) 
     
     # ML
-    netML = ML64(out_dim=out_dim).to(DEVICE)      
+    netML = ML64(out_dim=out_dim)
+    if multi_gpu:
+        netML = nn.DataParallel(netML)
+    netML.to(DEVICE)      
     optimizerML = optim.Adam(netML.parameters(), lr = learning_rate, betas=(0.5,0.999),eps= 1e-3)   
 
     # Losses    
