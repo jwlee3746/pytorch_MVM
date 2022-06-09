@@ -24,17 +24,17 @@ from torch import autograd
 
 
 from data_utils import is_image_file, train_transform, TrainDatasetFromFolder, \
-                        generate_image, gen_rand_noise, remove_module_str_in_state_dict, requires_grad
+                        generate_image, gen_rand_noise, remove_module_str_in_state_dict, requires_grad, str2bool
 from loss import TripletLoss, pairwise_distances
 from model import Generator64, ML64
-
+        
 parser = argparse.ArgumentParser(description='Train Image Generation Models')
 parser.add_argument('--data_path', default='/mnt/prj/Data/celebA/celeba', type=str, help='dataset path')
 parser.add_argument('--data_name', default='celeba', type=str, help='dataset name')
 parser.add_argument('--name', default='results', type=str, help='path to store results')
 parser.add_argument('--size', default=64, type=int, help='training images size')
 parser.add_argument('--out_dim', default=10, type=int, help='ML network output dim')
-parser.add_argument('--num_epochs', default=50, type=int, help='train epoch number')
+parser.add_argument('--num_epochs', default=80, type=int, help='train epoch number')
 parser.add_argument('--num_samples', default=64, type=int, help='number of displayed samples')
 parser.add_argument('--batch_size', default=256, type=int, help='train batch size')
 parser.add_argument('--lr', default=1e-4, type=float, help='train learning rate')
@@ -47,6 +47,9 @@ parser.add_argument('--ml_model_name', default='ML64', type=str, help='metric le
 parser.add_argument('--margin', default=1, type=float, help='triplet loss margin')
 parser.add_argument('--alpha', default=1e-2, type=float, help='triplet loss direction guidance weight parameter')
 parser.add_argument('--n_threads', type=int, default=16)
+parser.add_argument('--multi_gpu', default=False, type=str2bool, help='Use multi-gpu')
+parser.add_argument('--device_ids', nargs='+', type=int, help='0: Use all 4 GPUs / 1: Use GPU0,1 / 2: Use GPU2,3')
+parser.add_argument('--write_logs', default=True, type=str2bool, help='Write logs or not')
 
 if __name__ == '__main__':
     opt = parser.parse_args()
@@ -64,51 +67,58 @@ if __name__ == '__main__':
     ML_MODEL_NAME = opt.ml_model_name
     margin = opt.margin
     alpha = opt.alpha
+    multi_gpu = opt.multi_gpu
+    device_ids = opt.device_ids
+    write_logs = opt.write_logs
     
     # Result path    
     now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     output_path = str(opt.name + '/' + '{}_{}_e{}_b{}_{}').format(G_MODEL_NAME, opt.data_name, NUM_EPOCHS, batch_size, now)
-    if not os.path.exists(output_path):
+    if write_logs and not os.path.exists(output_path):
         os.makedirs(output_path)
     log_path= str(output_path + '/logs')
-    if not os.path.exists(log_path):
+    if write_logs and not os.path.exists(log_path):
         os.makedirs(log_path)
     sample_path = output_path + '/images' 
-    if not os.path.exists(sample_path):
+    if write_logs and not os.path.exists(sample_path):
         os.makedirs(sample_path)          
     
     # jupyter-tensorboard writer
-    writer = SummaryWriter(log_path)
+    if write_logs:
+        writer = SummaryWriter(log_path)
     
     # Dataset & Dataloader
     trainset = TrainDatasetFromFolder(opt.data_path, size=SIZE)  
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=16)
     
+    # Multi-GPU
+    if multi_gpu and (len(device_ids) > 1):
+        if (torch.cuda.is_available()) and (torch.cuda.device_count() > 1):
+            print("Let's use", len(device_ids), "GPUs!")
+        else : multi_gpu = False
+    
     # Device
-    if torch.cuda.is_available():   
-        DEVICE = torch.device('cuda')
+    if torch.cuda.is_available():
+        if device_ids:
+            DEVICE = torch.device('cuda:{}'.format(device_ids[0]))
+        else:
+            DEVICE = torch.device('cuda')
     else:
         DEVICE = torch.device('cpu')
     print('Using PyTorch version:', torch.__version__, ' Device:', DEVICE)
     
-    # Multi-GPU
-    if (DEVICE.type == 'cuda') and (torch.cuda.device_count() > 1):
-        print("Let's use", torch.cuda.device_count(), "GPUs!")
-        multi_gpu = True
-    else : multi_gpu = False
-    
     # Generator
     netG = Generator64()
     if multi_gpu:
-        netG = nn.DataParallel(netG)
+        netG = nn.DataParallel(netG, device_ids)
     netG.to(DEVICE)  
     optimizerG = optim.Adam(netG.parameters(), lr = learning_rate, betas=(beta1,beta2),eps= 1e-6) 
     
     # ML
     netML = ML64(out_dim=out_dim)
     if multi_gpu:
-        netML = nn.DataParallel(netML)
+        netML = nn.DataParallel(netML, device_ids)
     netML.to(DEVICE)      
     optimizerML = optim.Adam(netML.parameters(), lr = learning_rate, betas=(0.5,0.999),eps= 1e-3)   
 
@@ -131,7 +141,7 @@ if __name__ == '__main__':
         netML.train()        
         
         for target in train_bar:
-            real_img = Variable(target).cuda()           
+            real_img = Variable(target).cuda().to(DEVICE)           
                 
             batch_size = real_img.size()[0]
             if batch_size != opt.batch_size:
@@ -244,9 +254,10 @@ if __name__ == '__main__':
         
             train_bar.set_description(desc='[%d/%d]' % (epoch, NUM_EPOCHS))
         
-        writer.add_scalars("loss/train", {"triplet_loss": triplet_loss, "g_loss": g_loss}, epoch)
-        #writer.add_scalar("triplet_loss/train", triplet_loss, epoch)
-        #writer.add_scalar("g_loss/train", g_loss, epoch)
+        if write_logs:
+            writer.add_scalars("loss/train", {"triplet_loss": triplet_loss, "g_loss": g_loss}, epoch)
+            #writer.add_scalar("triplet_loss/train", triplet_loss, epoch)
+            #writer.add_scalar("g_loss/train", g_loss, epoch)
         
         if epoch % 2 != 0:
             continue    
@@ -259,9 +270,10 @@ if __name__ == '__main__':
 ###------------------display generated samples--------------------------------------------------
         fixed_noise = gen_rand_noise(num_samples).to(DEVICE)        
         gen_images = generate_image(netG, dim=SIZE, batch_size=num_samples, noise=fixed_noise)
-        utils.save_image(gen_images, str(sample_path  +'/' + 'samples_{}.png').format(epoch), nrow=int(sqrt(num_samples)), padding=2)             
+        if write_logs:
+            utils.save_image(gen_images, str(sample_path  +'/' + 'samples_{}.png').format(epoch), nrow=int(sqrt(num_samples)), padding=2)             
         
-        if epoch % 10 != 0:
+        if (not write_logs) or (epoch % 10 != 0):
             continue    
 # 	#----------------------Save model----------------------
         torch.save(netG.state_dict(), str(output_path  +'/' + "generator_{}.pt").format(epoch))
@@ -269,7 +281,8 @@ if __name__ == '__main__':
         torch.save(netG.state_dict(), str(output_path  +'/' + "generator_latest.pt"))
         torch.save(netML.state_dict(), str(output_path  +'/' + "ml_model_latest.pt"))
     
-    writer.close()   
+    if write_logs:    
+        writer.close()   
 ################################################################## 
 ### The above code is for reproducing results in PyTorch 1.0. For PyTorch with higher versions, one can try replace the main body as follows:
 # 1.  Like in implementation-stylegan2/train_MvM.py:
