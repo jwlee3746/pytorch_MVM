@@ -62,3 +62,14 @@ def remove_module_str_in_state_dict(state_dict):
 def requires_grad(model, tf):   
     for param in model.parameters():
         param.requires_grad = tf
+
+# For parser boolean input
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise Exception('Boolean value expected.')
