@@ -1,12 +1,47 @@
 import math
 import torch
 from torch import nn
+import torch.nn.functional as F
 import numpy as np
 from torch.autograd import grad, Variable
 
+def normal_init(m, mean, std):
+    if isinstance(m, nn.ConvTranspose2d) or isinstance(m, nn.Conv2d):
+        m.weight.data.normal_(mean, std)
+        
+# G(z)
+class generator(nn.Module):
+    # initializers
+    def __init__(self, d=128):
+        super(generator, self).__init__()
+        self.deconv1 = nn.ConvTranspose2d(128, d*8, 4, 1, 0)
+        self.deconv1_bn = nn.BatchNorm2d(d*8)
+        self.deconv2 = nn.ConvTranspose2d(d*8, d*4, 4, 2, 1)
+        self.deconv2_bn = nn.BatchNorm2d(d*4)
+        self.deconv3 = nn.ConvTranspose2d(d*4, d*2, 4, 2, 1)
+        self.deconv3_bn = nn.BatchNorm2d(d*2)
+        self.deconv4 = nn.ConvTranspose2d(d*2, d, 4, 2, 1)
+        self.deconv4_bn = nn.BatchNorm2d(d)
+        self.deconv5 = nn.ConvTranspose2d(d, 1, 4, 2, 1)
 
+    # weight_init
+    def weight_init(self, mean, std):
+        for m in self._modules:
+            normal_init(self._modules[m], mean, std)
+
+    # forward method
+    def forward(self, input):
+        # x = F.relu(self.deconv1(input))
+        x = F.relu(self.deconv1_bn(self.deconv1(input)))
+        x = F.relu(self.deconv2_bn(self.deconv2(x)))
+        x = F.relu(self.deconv3_bn(self.deconv3(x)))
+        x = F.relu(self.deconv4_bn(self.deconv4(x)))
+        x = F.tanh(self.deconv5(x))
+
+        return x
+    
 class Generator64(nn.Module):
-    def __init__(self):
+    def __init__(self, channel):
         super(Generator64, self).__init__()
         self.nz = 128
         self.n = 128
@@ -20,7 +55,7 @@ class Generator64(nn.Module):
             ResidualBlock(n, n, 3, resample='up'),
             nn.BatchNorm2d(n),
             nn.ReLU(inplace=True),
-            nn.Conv2d(n, 3, 3, padding=(3-1)//2),  
+            nn.Conv2d(n, channel, 3, padding=(3-1)//2),  
             nn.Sigmoid()
         )
 
@@ -32,12 +67,12 @@ class Generator64(nn.Module):
     
     
 class ML64(nn.Module):
-    def __init__(self, out_dim):
+    def __init__(self, out_dim, channel):
         super(ML64, self).__init__()
         dim = 32
 
         self.image_to_features = nn.Sequential(
-            nn.Conv2d(3, dim, 4, 2, 1),
+            nn.Conv2d(channel, dim, 4, 2, 1),
             nn.LeakyReLU(0.2),
             nn.Conv2d(dim, 2 * dim, 4, 2, 1),
             nn.LeakyReLU(0.2),
@@ -150,3 +185,11 @@ class DiscBlock1(nn.Module):
     def forward(self, x):
         return self.conv_shortcut(x) + self.model(x)
     
+"""
+from torchsummary import summary as summary_
+device = torch.device('cuda')
+model1 = generator().to(device)
+model2 = ML64(10,1).to(device)
+print(summary_(model2, (1,64,64)))
+print(summary_(model1, (128,1,1)))
+"""
