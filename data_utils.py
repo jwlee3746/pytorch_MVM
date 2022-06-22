@@ -49,6 +49,7 @@ def generate_image(netG, dim, channel, batch_size, noise=None):
     with torch.no_grad():
     	noisev = noise 
     samples = netG(noisev)
+    print(samples.shape)
     samples = samples.view(batch_size, channel, dim, dim) # 1 or 3
     #samples = (samples + 1) * 0.5 # if tanh
     return samples
@@ -107,7 +108,7 @@ def plot_after_train(netML, netG, trainset, n_to_show = 1500, download_path = No
         ml_out_reduced = reducer.fit_transform(embeddings)
         plt.scatter(
             ml_out_reduced[:, 0], ml_out_reduced[:, 1],
-            cmap="rainbow", c=labels, alpha=0.7, s=7)
+            cmap="rainbow", c=labels, alpha=0.7, s=5)
         plt.gca().set_aspect('equal', 'datalim')
         plt.title('UMAP 2D projection of {} data'.format(n_to_show), fontsize=18)
         if download_path:
@@ -122,7 +123,7 @@ def plot_after_train(netML, netG, trainset, n_to_show = 1500, download_path = No
         ax = fig.add_subplot(111, projection='3d')
         ax.scatter(
             ml_out_reduced[:, 0], ml_out_reduced[:, 1], ml_out_reduced[:, 2],
-            cmap='rainbow', c=labels, alpha=0.7, s=7)    
+            cmap='rainbow', c=labels, alpha=0.4, s=3)    
         plt.gca().set_aspect('auto', 'datalim')
         plt.title('UMAP 3D projection of {} data'.format(n_to_show), fontsize=18)
         if download_path:

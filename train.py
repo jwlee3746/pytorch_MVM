@@ -37,6 +37,7 @@ parser = argparse.ArgumentParser(description='Train Image Generation Models')
 parser.add_argument('--data_path', default='/mnt/prj/Data/celebA/celeba', type=str, help='dataset path')
 parser.add_argument('--data_name', default='celeba', type=str, help='dataset name')
 parser.add_argument('--name', default='results', type=str, help='path to store results')
+parser.add_argument('--comment', default='', type=str, help='comment what is changed')
 parser.add_argument('--size', default=64, type=int, help='training images size')
 parser.add_argument('--out_dim', default=10, type=int, help='ML network output dim')
 parser.add_argument('--num_epochs', default=80, type=int, help='train epoch number')
@@ -55,12 +56,14 @@ parser.add_argument('--n_threads', type=int, default=16)
 parser.add_argument('--multi_gpu', default=False, type=str2bool, help='Use multi-gpu')
 parser.add_argument('--device_ids', nargs='+', type=int, help='0 1 2 3: Use all 4 GPUs')
 parser.add_argument('--write_logs', default=True, type=str2bool, help='Write logs or not')
+parser.add_argument('--decode', default=False, type=str2bool, help='Decode real img or not')
 
     
 if __name__ == '__main__':
     opt = parser.parse_args()
     
     SIZE = opt.size
+    COMMENT = opt.comment
     out_dim = opt.out_dim
     learning_rate = opt.lr
     beta1 = opt.beta1
@@ -76,10 +79,13 @@ if __name__ == '__main__':
     multi_gpu = opt.multi_gpu
     device_ids = opt.device_ids
     write_logs = opt.write_logs
+    DECODE = opt.decode
     
     # Result path    
     now = datetime.datetime.now().strftime("%m%d-%H%M")
     output_path = str(opt.name + '/' + '{}_{}_{}_e{}_b{}_m{}').format(now, G_MODEL_NAME, opt.data_name, NUM_EPOCHS, batch_size, margin)
+    if COMMENT:
+        output_path += '_{}'.format(COMMENT)
     if write_logs and not os.path.exists(output_path):
         os.makedirs(output_path)
     log_path= str(output_path + '/logs')
@@ -93,7 +99,12 @@ if __name__ == '__main__':
         os.makedirs(umap_path)   
     A_sample_path = sample_path + '/a_image' 
     if write_logs and not os.path.exists(A_sample_path):
-        os.makedirs(A_sample_path)         
+        os.makedirs(A_sample_path)  
+    if DECODE:
+        out_dim = 128
+        decoded_path = sample_path + '/decoded_image' 
+        if write_logs and not os.path.exists(decoded_path):
+            os.makedirs(decoded_path)          
     
     # jupyter-tensorboard writer
     if write_logs:
@@ -126,27 +137,32 @@ if __name__ == '__main__':
     
     # Generator
     netG = Generator64(channel=3)
-    if multi_gpu:
+    if multi_gpu and LOAD_MODEL == 'no':
         netG = nn.DataParallel(netG, device_ids)
-    netG.to(DEVICE)  
+  
     optimizerG = optim.Adam(netG.parameters(), lr = learning_rate, betas=(beta1,beta2),eps= 1e-6) 
     
     # ML
     netML = ML64(out_dim=out_dim, channel=3)
-    if multi_gpu:
+    if multi_gpu and LOAD_MODEL == 'no':
         netML = nn.DataParallel(netML, device_ids)
-    netML.to(DEVICE)      
+     
     optimizerML = optim.Adam(netML.parameters(), lr = learning_rate, betas=(0.5,0.999),eps= 1e-3)   
-
+    
+    if LOAD_MODEL == 'yes':
+        netG.load_state_dict(remove_module_str_in_state_dict(torch.load(str(opt.load_model_path + "/generator_latest.pt"))))
+        netG = nn.DataParallel(netG, device_ids)
+        
+        netML.load_state_dict(remove_module_str_in_state_dict(torch.load(str(opt.load_model_path + "/ml_model_latest.pt")))) 
+        netML = nn.DataParallel(netML, device_ids)
+        print("LOAD MODEL SUCCESSFULLY")
+    
+    netG.to(DEVICE)     
+    netML.to(DEVICE)     
+    
     # Losses    
     triplet_ = TripletLoss(margin, alpha).to(DEVICE)    
 
-    if LOAD_MODEL == 'yes':
-        netG.load_state_dict(remove_module_str_in_state_dict(torch.load(str(opt.load_model_path + "/generator_latest.pt"))))
-        netML.load_state_dict(remove_module_str_in_state_dict(torch.load(str(opt.load_model_path + "/ml_model_latest.pt")))) 
-        print("LOAD MODEL SUCCESSFULLY")
-        
-    
     #fixed_noise1 = gen_rand_noise(1).to(DEVICE) 
 
     for epoch in range(1, NUM_EPOCHS + 1):
@@ -277,13 +293,19 @@ if __name__ == '__main__':
         print('hausdorff distance: ', h_distance)        
         print(' c_dist:',c_dist.item(), ' p_dist:', p_dist.item(),' triplet_loss:',triplet_loss.item())
 
-###------------------display generated samples--------------------------------------------------
+###------------------display generated samples--------------------------------------------------      
+        if DECODE:
+            temp = ml_real_out.clone().unsqueeze(-1).unsqueeze(-1)
+            num_decoded = temp.size()[0]
+            decode_images = generate_image(netG, dim=SIZE, channel=3, batch_size=num_decoded, noise=temp)
+        
         fixed_noise1 = gen_rand_noise(1).to(DEVICE)        
         gen_image1 = generate_image(netG, dim=SIZE, channel=3, batch_size=1, noise=fixed_noise1)
         
         fixed_noise = gen_rand_noise(num_samples).to(DEVICE)        
         gen_images = generate_image(netG, dim=SIZE, channel=3, batch_size=num_samples, noise=fixed_noise)
         if write_logs:
+            utils.save_image(decode_images, str(decoded_path  +'/' + 'decoded_{}.png').format(epoch), nrow=int(sqrt(num_decoded)), padding=2)
             utils.save_image(gen_image1, str(A_sample_path  +'/' + 'sample1_{}.png').format(epoch), nrow=int(sqrt(1)), padding=2)
             utils.save_image(gen_images, str(sample_path  +'/' + 'samples_{}.png').format(epoch), nrow=int(sqrt(num_samples)), padding=2)             
         
