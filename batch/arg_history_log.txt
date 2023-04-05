@@ -1,0 +1,99 @@
+----------------------------------------
+--data_path "/home/dgxa100/jaewon/Data/celeba/img_align_celeba" --data_name "celeba"
+
+2022. 12. 23. (금) 10:55:01 KST 시작
+----------------------------------------
+--data_path "/home/dgxa100/jaewon/Data/celeba/img_align_celeba" --data_name "celeba"
+
+2022. 12. 23. (금) 11:35:01 KST 시작
+----------------------------------------
+--data_path "/home/dgxa100/jaewon/Data/celeba/img_align_celeba" --data_name "celeba"
+
+2022. 12. 23. (금) 11:40:01 KST 시작
+----------------------------------------
+--data_path "/home/dgxa100/jaewon/Data/celeba/img_align_celeba" --data_name "celeba"
+
+2022. 12. 23. (금) 11:45:01 KST 시작
+----------------------------------------
+--data_path "../Data/celeba/img_align_celeba" --data_name "celeba"
+
+2022. 12. 23. (금) 11:50:01 KST 시작
+----------------------------------------
+--data_path "/home/dgxa100/jaewon/Data/celeba/img_align_celeba" --data_name "celeba"
+
+2022. 12. 23. (금) 11:55:01 KST 시작
+----------------------------------------
+--data_path "/home/dgxa100/jaewon/Data/celeba/img_align_celeba" --data_name "celeba"
+
+2022. 12. 23. (금) 12:00:02 KST 시작
+----------------------------------------
+--data_path "../Data/celeba/img_align_celeba" --data_name "celeba"
+
+2022. 12. 23. (금) 12:05:01 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/celeba/img_align_celeba --data_name celeba
+
+2022. 12. 23. (금) 12:10:01 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/celeba/img_align_celeba --data_name celeba
+
+2022. 12. 23. (금) 12:15:01 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/celeba/img_align_celeba --data_name celeba
+
+2022. 12. 23. (금) 12:20:01 KST 시작
+2022. 12. 23. (금) 16:30:38 KST 종료
+----------------------------------------
+
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/Cooper/Cooper --data_name Cooper
+
+2022. 12. 23. (금) 16:35:02 KST 시작
+2022. 12. 23. (금) 17:23:53 KST 종료
+----------------------------------------
+
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/Ada --data_name Ada
+2022. 12. 23. (금) 17:55:01 KST 시작
+2022. 12. 24. (토) 09:20:11 KST 종료
+----------------------------------------
+
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/Ada+Cooper --data_name Ada+Cooper
+2022. 12. 26. (월) 12:35:01 KST 시작
+2022. 12. 27. (화) 19:19:07 KST 종료
+----------------------------------------
+
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/AdaToCooper --data_name AdaToCooper
+2022. 12. 30. (금) 19:20:02 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/AdaToCooper --data_name AdaToCooper
+2022. 12. 30. (금) 19:25:01 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/AdaToCooper --data_name AdaToCooper
+2022. 12. 30. (금) 19:30:01 KST 시작
+----------------------------------------
+#--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/AdaToCooper --data_name AdaToCooper
+2022. 12. 30. (금) 19:35:01 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/AdaToCooper --data_name AdaToCooper
+2022. 12. 30. (금) 19:40:01 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/AdaToCooper --data_name AdaToCooper
+2023. 01. 02. (월) 11:05:01 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/AdaToCooper --data_name AdaToCooper --size 64 --g_model_name Generator64 --ml_model_name ML64
+
+2023. 01. 02. (월) 11:10:02 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/AdaToCooper --data_name AdaToCooper --size 64 --g_model_name Generator64 --ml_model_name ML64 --num_samples 121 --n_to_show 10000
+
+2023. 01. 02. (월) 11:15:01 KST 시작
+----------------------------------------
+--data_path /home/dgxa100/jaewon/Data/GIANTSTEP/AdaToCooper --data_name AdaToCooper --size 64 --g_model_name Generator64 --ml_model_name ML64 --num_samples 121 --n_to_show 10000
+
+2023. 01. 02. (월) 13:15:01 KST 시작
+2023. 01. 03. (화) 05:10:31 KST 종료
+----------------------------------------
+

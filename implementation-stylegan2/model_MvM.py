@@ -735,3 +735,83 @@ class ML512(nn.Module):
         x = F.normalize(x)
         
         return x 
+
+class ML28(nn.Module):
+    def __init__(self, out_dim, channel=1):
+        super(ML28, self).__init__()
+        dim = 32
+
+        self.image_to_features = nn.Sequential(
+            nn.Conv2d(channel, dim, 3, 1, 1), #in_channels, out_channels, kernel_size, stride=1, padding=0,
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(dim, 2 * dim, 3, 2, 1),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(2 * dim, 2 * dim, 3, 2, 1),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(2 * dim, 2 * dim, 3, 1, 1),
+            nn.LeakyReLU(0.2)
+        )
+
+        self.features_to_prob = nn.Linear(3136, out_dim)
+
+
+    def forward(self, x):
+        batch_size = x.size()[0]
+        x = self.image_to_features(x)
+        x = x.view(batch_size, -1)
+        x = self.features_to_prob(x)
+        x = F.normalize(x)
+        
+        return x
+
+class ML32(nn.Module):
+    def __init__(self, out_dim, channel=3):
+        super(ML32, self).__init__()
+        dim = 32
+
+        self.image_to_features = nn.Sequential(
+            nn.Conv2d(channel, dim, 4, 2, 1),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(dim, 2 * dim, 4, 2, 1),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(2 * dim, 4 * dim, 4, 2, 1),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(4 * dim, 8 * dim, 4, 2, 1),
+            nn.LeakyReLU(0.2),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+
+        self.features_to_prob = nn.Linear(8 * dim, out_dim)
+
+
+    def forward(self, x):
+        batch_size = x.size()[0]
+        x = self.image_to_features(x)
+        x = x.view(batch_size, -1)
+        x = self.features_to_prob(x)
+        x = F.normalize(x)
+        return x
+    
+'''
+from torchsummary import summary as summary_
+device = torch.device('cuda')
+model1 = Generator32_DCGAN().to(device)
+model2 = ML32(out_dim=10, channel=3).to(device)
+print(summary_(model1, (128,1,1)))
+print(summary_(model2, (3,32,32)))
+print(model1(torch.rand(1,128,1,1).to(device)).shape)
+print(model2(torch.rand(1,3,32,32).to(device)).shape)
+'''
+   
+'''
+from torchsummary import summary as summary_
+device = torch.device('cuda')
+model1 = Generator(32, 128, 8, channel_multiplier=2).to(device)
+model2 = ML32(out_dim=100, channel=3).to(device)
+noise = mixing_noise(2, 128, 0.9, device = None)
+
+print(summary_(model2, (3, 32, 32)))
+print(summary_(model1, ((1,128))))
+print(model2(torch.rand(100, 3, 32, 32).to(device)).shape)
+print(model1(noise).shape)
+'''

@@ -2,23 +2,24 @@ import argparse
 import math
 import random
 import os
+import datetime
 
 import numpy as np
-
 import torch
 from torch import nn, autograd, optim
 from torch.nn import functional as F
 from torch.utils import data
 import torch.distributed as dist
-
 from torchvision import transforms, utils
-
 from tqdm import tqdm
+from torchvision import datasets, transforms
 
 try:
     import wandb
+
 except ImportError:
     wandb = None
+
 
 from dataset import MultiResolutionDataset
 from distributed import (
@@ -28,11 +29,10 @@ from distributed import (
     reduce_sum,
     get_world_size,
 )
-
 from op import conv2d_gradfix
 from non_leaking import augment, AdaptiveAugment
 
-from loss import TripletLoss, pairwise_distances
+from loss import TripletLoss, pairwise_distances, AveragedHausdorffLoss
 
 from PIL import Image
 import torch.distributed as dist
@@ -134,22 +134,23 @@ def set_grad_none(model, targets):
 def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, device):
     loader = sample_data(loader)
     
-    log_folder = args.out
+    now = datetime.datetime.now().strftime("%m%d_%H%M")
+    log_folder = str(args.out + '/' + '{}_{}_e{}'.format(now, args.arch, args.iter))
     
-    if not os.path.exists(log_folder):
+    if get_rank() == 0 and not os.path.exists(log_folder):
         os.makedirs(log_folder)
         os.makedirs(log_folder+'/checkpoint')
         os.makedirs(log_folder+'/sample')
     
-    post_fix = '.txt'
-    config_file_name = os.path.join(log_folder, 'train_config'+post_fix)
-    config_file = open(config_file_name, 'w')
-    config_file.write(str(args))
-    config_file.close()
-
-    from shutil import copy
-    copy('train_MvM.py', log_folder+'/train_MvM.py') 
-    copy('model_MvM.py', log_folder+'/model_MvM.py')     
+        post_fix = '.txt'
+        config_file_name = os.path.join(log_folder, 'train_config'+post_fix)
+        config_file = open(config_file_name, 'w')
+        config_file.write(str(args))
+        config_file.close()
+    
+        from shutil import copy
+        copy('train_MvM.py', log_folder+'/train_MvM.py') 
+        copy('model_MvM.py', log_folder+'/model_MvM.py')     
 
     pbar = range(args.iter)
 
@@ -159,6 +160,8 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
     mean_path_length = 0
 
     triplet_ = TripletLoss(args.margin, args.alpha).to(device)     
+    d_hausdorff_ = AveragedHausdorffLoss(directed = True).to(device)
+    
     d_loss_val = 0
     r1_loss = torch.tensor(0.0, device=device)
     g_loss_val = 0
@@ -191,10 +194,17 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
             print("Done!")
 
             break
-
-        real_img = next(loader)
+        
+        target = next(loader)
+        if type(target) == list:
+            real_img, labels = target
+        else:
+            real_img = target
         real_img = real_img.to(device)
 
+        ############################ 
+        # Metric Learning
+        ############################ 
         requires_grad(generator, False)
         requires_grad(discriminator, True)
 
@@ -255,7 +265,10 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
             d_optim.step()
 
         loss_dict["r1"] = r1_loss
-
+        
+        ############################ 
+        # Generative Model
+        ############################ 
         requires_grad(generator, True)
         requires_grad(discriminator, False)
 
@@ -274,7 +287,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
         r2=torch.randperm(batch_size)
         real_pred_shuffle = real_pred[r1[:, None]].view(real_pred.shape[0],real_pred.shape[-1])
         fake_pred_shuffle = fake_pred[r2[:, None]].view(fake_pred.shape[0],fake_pred.shape[-1])         
-        
+        '''
         pd_r = pairwise_distances(real_pred, real_pred) 
         pd_f = pairwise_distances(fake_pred, fake_pred)
 
@@ -282,9 +295,11 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
         c_dist = torch.dist(real_pred.mean(0),fake_pred.mean(0),2) 
  
         g_loss = p_dist + c_dist 
-
+        '''
+        g_loss = d_hausdorff_(real_pred, fake_pred)
+        
         loss_dict["g"] = g_loss
-
+        
         generator.zero_grad()
         g_loss.backward()
         g_optim.step()
@@ -382,17 +397,12 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
 
 
 if __name__ == "__main__":
-    # Device
-    if torch.cuda.is_available():   
-        DEVICE = torch.device('cuda')
-    else:
-        DEVICE = torch.device('cpu')
-    print('Using PyTorch version:', torch.__version__, ' Device:', DEVICE)
+    device = "cuda"
 
     parser = argparse.ArgumentParser(description="StyleGAN2 trainer")
 
-    parser.add_argument("--path", type=str, default="/data/mendai/FFHQ/FFHQ_lmdb", help="path to the image dataset")
-    parser.add_argument("--out", type=str, default="/data/mendai/MM/results/FFHQ", help="path to output results")    
+    parser.add_argument("--path", type=str, default="/mnt/prj/jaewon/MVM/implementation-stylegan2/stylegan2-pytorch-master/celeba", help="path to the image imdb dataset")
+    parser.add_argument("--out", type=str, default="/mnt/prj/jaewon/MVM/results", help="path to output results")    
     parser.add_argument('--arch', type=str, default='stylegan2-MvM', help='model architectures (stylegan2 | swagan)')
     parser.add_argument(
         "--iter", type=int, default=800000, help="total training iterations"
@@ -496,6 +506,12 @@ if __name__ == "__main__":
         type=float,
         default=0.1,
         help="metric learning direction regularizier weight",
+    )      
+    parser.add_argument(
+        "--latent",
+        type=int,
+        default=512,
+        help="latent dim",
     )    
 
     args = parser.parse_args()
@@ -508,7 +524,6 @@ if __name__ == "__main__":
         torch.distributed.init_process_group(backend="nccl", init_method="env://")
         synchronize()
 
-    args.latent = 512
     args.n_mlp = 8
 
     args.start_iter = 0
@@ -520,7 +535,7 @@ if __name__ == "__main__":
         from swagan import Generator, Discriminator
  
     elif args.arch == 'stylegan2-MvM':
-        from model_MvM import Generator, ML512
+        from model_MvM import Generator, ML512, ML28, ML32
         
 
     generator = Generator(
@@ -529,8 +544,9 @@ if __name__ == "__main__":
 #     discriminator = Discriminator(
 #         args.size, channel_multiplier=args.channel_multiplier
 #     ).to(device) 
-    discriminator = ML512(out_dim=256).to(device)    
     
+    discriminator = ML512(out_dim=256).to(device)    
+    #discriminator = ML32(out_dim=100, channel=3).to(device)
     
     g_ema = Generator(
         args.size, args.latent, args.n_mlp, channel_multiplier=args.channel_multiplier
@@ -593,7 +609,7 @@ if __name__ == "__main__":
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), inplace=True),
         ]
     )
-
+    
     dataset = MultiResolutionDataset(args.path, transform, args.size)
     loader = data.DataLoader(
         dataset,
@@ -602,8 +618,27 @@ if __name__ == "__main__":
         sampler=data_sampler(dataset, shuffle=True, distributed=args.distributed),
         drop_last=True,
     )
+    '''
+    transform = transforms.Compose(
+        [transforms.Scale(args.size),
+         transforms.ToTensor(), 
+         transforms.Normalize((0.5,), (0.5,)),
+         ]
+    )
     
-
+    dataset = datasets.MNIST(root = '/mnt/prj/Data/',
+                                   train = True,
+                                   download = True,
+                                   transform = transform
+                                   )
+    loader = data.DataLoader(
+        dataset,
+        num_workers=8,
+        batch_size=args.batch,
+        sampler=data_sampler(dataset, shuffle=True, distributed=args.distributed),
+        drop_last=True,
+    )
+    '''
     if get_rank() == 0 and wandb is not None and args.wandb:
         wandb.init(project="stylegan 2")
 
