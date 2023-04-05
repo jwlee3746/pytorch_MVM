@@ -34,9 +34,9 @@ python train_synthetic.py
 
 <table>
   <tr>
-      <td><img alt="GAN" src="/images/0209_0027_spiral_30000.gif">
-      <img alt="MVM" src="/images/0209_0009_MVM_spiral_30000_.gif">
-      <img alt="MVM+" src="/images/0208_1631_MVM++_spiral_30000_Sota재현.gif">
+      <td><img alt="GAN" src="/images/0209_0027_spiral_30000.gif" width=250>
+      <img alt="MVM" src="/images/0209_0009_MVM_spiral_30000_.gif" width=250>
+      <img alt="MVM+" src="/images/0208_1631_MVM++_spiral_30000_Sota재현.gif" width=250>
   <tr>
 </table>
 
