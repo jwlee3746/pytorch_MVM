@@ -36,11 +36,17 @@ python train_synthetic.py
 &emsp;
 
 <p align="left">
-<img src="/images/0209_0027_spiral_30000.gif" align="middle" width="400">
+<img src="/images/0209_0027_spiral_30000.gif" align="middle">
 </p>
+
 <p align="center">
-<img src="/images/0209_0009_MVM_spiral_30000_.gif" align="middle" width="400">
+<img src="/images/0209_0009_MVM_spiral_30000_.gif" align="middle">
 </p>
+
+<p align="right">
+<img src="/images/0208_1631_MVM++_spiral_30000_Sota재현.gif" align="middle">
+</p>
+
 # Citation
 ```
 @misc{daiandhang2021manifold,
