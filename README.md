@@ -15,7 +15,6 @@ Objective for manifold matching with learned metric:
 ```
 g_loss = d_hausdorff_(ml_real_out, ml_fake_out) 
 ```
-```
 
 # Dependencies
 - Pytorch 1.0.1
