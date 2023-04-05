@@ -43,7 +43,7 @@ python train_synthetic.py
 <table>
   <tr>
       <td><img alt="GAN" src="/images/celebA시연.gif">
-      <img alt="MVM" src="/images/mnist시연_.gif">
+      <img alt="MVM" src="/images/mnist시연.gif">
       <img alt="MVM+" src="/images/mnist시연2.gif">
   <tr>
 </table>
