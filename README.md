@@ -40,6 +40,13 @@ python train_synthetic.py
   <tr>
 </table>
 
+<table>
+  <tr>
+      <td><img alt="GAN" src="/images/celebA시연.gif" width=250>
+      <img alt="MVM" src="/images/mnist시연_.gif" width=250>
+      <img alt="MVM+" src="/images/mnist시연2.gif" width=250>
+  <tr>
+</table>
 # Citation
 ```
 @misc{daiandhang2021manifold,
