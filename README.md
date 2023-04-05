@@ -36,8 +36,8 @@ python train_synthetic.py
 &emsp;
 
 <p align="center">
-<img src="/images/0209_0027_spiral_30000.gif" align="left" width="100">
-<img src="/images/0209_0009_MVM_spiral_30000_.gif" align="right" width="100">
+<img src="/images/0209_0027_spiral_30000.gif" align="left" width="400">
+<img src="/images/0209_0009_MVM_spiral_30000_.gif" align="right" width="400">
 </p>
 
 # Citation
