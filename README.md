@@ -42,9 +42,9 @@ python train_synthetic.py
 
 <table>
   <tr>
-      <td><img alt="GAN" src="/images/celebA시연.gif" width=250>
-      <img alt="MVM" src="/images/mnist시연_.gif" width=250>
-      <img alt="MVM+" src="/images/mnist시연2.gif" width=250>
+      <td><img alt="GAN" src="/images/celebA시연.gif">
+      <img alt="MVM" src="/images/mnist시연_.gif">
+      <img alt="MVM+" src="/images/mnist시연2.gif">
   <tr>
 </table>
 # Citation
