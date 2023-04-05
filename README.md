@@ -47,6 +47,7 @@ python train_synthetic.py
       <img alt="MVM+" src="/images/mnist시연2.gif">
   <tr>
 </table>
+
 # Citation
 ```
 @misc{daiandhang2021manifold,
