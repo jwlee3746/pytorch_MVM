@@ -16,9 +16,6 @@ Objective for manifold matching with learned metric:
 g_loss = d_hausdorff_(ml_real_out, ml_fake_out) 
 ```
 
-# Dependencies
-- Pytorch 1.0.1
-
 # Dataset
 Download data to the data path. The sample code uses [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) dataset.
 
@@ -37,9 +34,9 @@ python train_synthetic.py
 
 <table>
   <tr>
-      <td><img alt="GAN" src="/images/0209_0027_spiral_30000.gif" align="middle" width="300">
-      <img alt="MVM" src="/images/0209_0009_MVM_spiral_30000_.gif" align="middle" width="300">
-      <img alt="MVM+" src="/images/0208_1631_MVM++_spiral_30000_Sota재현.gif" align="middle" width="300">
+      <td><img alt="GAN" src="/images/0209_0027_spiral_30000.gif" align="middle" width="200">
+      <img alt="MVM" src="/images/0209_0009_MVM_spiral_30000_.gif" align="middle" width="200">
+      <img alt="MVM+" src="/images/0208_1631_MVM++_spiral_30000_Sota재현.gif" align="middle" width="200">
   <tr>
 </table>
 
